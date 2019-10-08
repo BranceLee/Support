@@ -11,7 +11,7 @@
     "start": "webpack-dev-server --watch --colors",
     "test": "node src/index.js",
     "lint": "eslint \"src/**/*.{js,jsx}\"",
-    "format": "prettier --single-quote  --trailing-comma \"all\" --write \"src/**/*.{js,jsx}\""
+    "fmt": "prettier --single-quote  --trailing-comma \"all\" --write \"src/**/*.{js,jsx}\""
   },
   "devDependencies": {
     "@babel/core": "7.4.4",

@@ -22,7 +22,7 @@ func sendErrorResponse(w http.ResponseWriter, err string, statusCode int) {
 	json.NewEncoder(w).Encode(payload)
 }
 
-func Core(w http.ResponseWriter) {
+func Cors(w http.ResponseWriter) {
 	env, _ := os.LookupEnv("ENV")
 	if env == "DEV" {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -37,7 +37,7 @@ type Handler struct {
 }
 
 func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
-	Core(w)
+	Cors(w)
 	content := r.PostFormValue("content")
 	title := r.PostFormValue("title")
 
