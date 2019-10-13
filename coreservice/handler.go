@@ -2,10 +2,10 @@ package coreservice
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	u "github.com/support/utils"
+	"github.com/getsentry/sentry-go"
 	"net/http"
 	"os"
 )
@@ -26,7 +26,7 @@ func sendSuccessJSONResponse(w http.ResponseWriter, payload *Response) {
 	encoder := json.NewEncoder(w)
 	err := encoder.Encode(payload)
 	if err != nil {
-		fmt.Println("error")
+		sentry.CaptureException(err)
 	}
 }
 

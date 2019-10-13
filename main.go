@@ -6,6 +6,7 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/support/config"
 	"github.com/support/coreservice"
+	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
@@ -28,28 +29,36 @@ func newServer(logger *zap.Logger) *server {
 func (s *server) connectToDB(){
 	dbConfig := config.DefaultPostgresConfig()
 	db, err := gorm.Open(dbConfig.Dialect(), dbConfig.ConnectionInfo())
-	env, _ := os.LookupEnv("ENV")
+	env, ok := os.LookupEnv("ENV")
+	if !ok  {
+		s.logger.Fatal("ENV Can not be null")
+	} 
 	db.LogMode(env == "DEV")
 	if err != nil {
-		log.Fatal(err)
+		sentry.CaptureException(err)
+		s.logger.Fatal("Environment variable ENV is not found")
 	}
 	s.db = db
 }
 
 func (s *server) initSentry(){
-	// Or get DNS from AWS ssmiface.SSMAPI 
-	 sentryDSN, ok := os.LookupEnv("sentry")
-	 if !ok  {
-		 s.logger.Fatal("Failed to initialize sentry")
-	 }
-	 s.sentryDSN=sentryDSN
+	// TODO: Get DNS from AWS ssmiface.SSMAPI, but in this project get in local. 
+	// sentryDSN, ok := os.LookupEnv("sentry")
+	//  if ok  {
+	// 	 s.logger.Fatal("Failed to initialize sentry")
+	//  }
+	sentryDSN := config.GetSentryDSN()
+	sentry.Init(sentry.ClientOptions{
+		Dsn: sentryDSN,
+	})
+	s.sentryDSN=sentryDSN
 }
 
 func main() {
 	exampaleLogger := zap.NewExample()
 	serv := newServer(exampaleLogger)
-	serv.connectToDB()
 	serv.initSentry()
+	serv.connectToDB()
 
 	undo := zap.RedirectStdLog(serv.logger)
 	defer serv.logger.Sync()
