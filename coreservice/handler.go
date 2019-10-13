@@ -5,21 +5,44 @@ import (
 	"github.com/jinzhu/gorm"
 	u "github.com/support/utils"
 	"net/http"
+	"fmt"
 	"os"
 )
 
-func response(statusCode int, payload string) map[string]interface{} {
-	return map[string]interface{}{
-		"statusCode": statusCode,
-		"data":       payload,
+type ErrorPayload struct {
+	Message			string		`json:"message"`
+}
+
+type Response struct {
+	StatusCode		int							`json:"status_code"`
+	Error			*ErrorPayload				`json:"error"`
+	Data			*map[string]interface{}		`json:"data"`
+}
+
+func sendSuccessJSONResponse(w http.ResponseWriter, payload *Response) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	encoder := json.NewEncoder(w)
+	err := encoder.Encode(payload)
+	if err != nil {
+		fmt.Println("error")
 	}
 }
 
-func sendErrorResponse(w http.ResponseWriter, err string, statusCode int) {
-	payload := response(statusCode, err)
-	w.Header().Set("Content-type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(payload)
+func sendErrorResponse(w http.ResponseWriter, err *ErrorPayload, statusCode int) {
+	sendSuccessJSONResponse(w, &Response{
+		StatusCode: statusCode,
+		Error:		err,
+		Data:		nil,
+	})
+}
+
+func sendSuccessResponse(w http.ResponseWriter, payload *map[string]interface{}){
+	sendSuccessJSONResponse(w, &Response{
+		StatusCode: http.StatusOK,
+		Error:		nil,
+		Data:		payload,
+	})
 }
 
 func Cors(w http.ResponseWriter) {
@@ -42,8 +65,9 @@ func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	title := r.PostFormValue("title")
 
 	if content == "" {
-		sendErrorResponse(w, "Content can not be null", 404)
-		return
+		sendErrorResponse(w, &ErrorPayload{
+			Message:	"Content can not be null",
+		}, 404)
 	}
 
 	blog := &Blog{
@@ -59,6 +83,17 @@ func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	}
 	res := u.Message(true, "Success")
 	u.Respond(w, res)
+}
+
+func (h Handler) GetAllBlogs(w http.ResponseWriter, r *http.Request){
+	Cors(w)
+	blogs, err := h.service.getAllBlogs()
+	if err != nil {
+		sendErrorResponse(w, &ErrorPayload{
+			Message:	"Internal Error",
+		}, 404)
+	}
+	fmt.Println(blogs)
 }
 
 func NewHandler(db *gorm.DB) (*Handler, error) {
