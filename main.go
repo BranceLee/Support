@@ -6,21 +6,56 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/support/config"
 	"github.com/support/coreservice"
+	"go.uber.org/zap"
 	"log"
 	"net/http"
 	"os"
 )
 
-func main() {
+type server struct {
+	env				string
+	db				*gorm.DB
+	sentryDSN		string
+	logger			*zap.Logger
+}
+
+func newServer(logger *zap.Logger) *server {
+	return &server{
+		logger:logger,
+	}
+}
+
+func (s *server) connectToDB(){
 	dbConfig := config.DefaultPostgresConfig()
 	db, err := gorm.Open(dbConfig.Dialect(), dbConfig.ConnectionInfo())
 	env, _ := os.LookupEnv("ENV")
 	db.LogMode(env == "DEV")
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
-	handler, err := coreservice.NewHandler(db)
+	s.db = db
+}
+
+func (s *server) initSentry(){
+	// Or get DNS from AWS ssmiface.SSMAPI 
+	 sentryDSN, ok := os.LookupEnv("sentry")
+	 if !ok  {
+		 s.logger.Fatal("Failed to initialize sentry")
+	 }
+	 s.sentryDSN=sentryDSN
+}
+
+func main() {
+	exampaleLogger := zap.NewExample()
+	serv := newServer(exampaleLogger)
+	serv.connectToDB()
+	serv.initSentry()
+
+	undo := zap.RedirectStdLog(serv.logger)
+	defer serv.logger.Sync()
+	defer undo()
+
+	handler, err := coreservice.NewHandler(serv.db)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -31,9 +66,9 @@ func main() {
 	router.HandleFunc("/api/blog", handler.CreateBlog).Methods("POST")
 	router.HandleFunc("/api/blog/all", handler.GetAllBlogs).Methods("GET")
 
-	log.Println("> Server runs on  8000")
+	serv.logger.Info("> Server runs on  8000")
 	err = http.ListenAndServe(":8000", router)
 	if err != nil {
-		log.Println(err)
+		serv.logger.Info("HTTP server error", zap.Error(err))
 	}
 }
