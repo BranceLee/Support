@@ -2,21 +2,22 @@ package coreservice
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	u "github.com/support/utils"
 	"net/http"
-	"fmt"
 	"os"
 )
 
 type ErrorPayload struct {
-	Message			string		`json:"message"`
+	Message string `json:"message"`
 }
 
 type Response struct {
-	StatusCode		int							`json:"status_code"`
-	Error			*ErrorPayload				`json:"error"`
-	Data			*map[string]interface{}		`json:"data"`
+	StatusCode int                     `json:"status_code"`
+	Error      *ErrorPayload           `json:"error"`
+	Data       *map[string]interface{} `json:"data"`
 }
 
 func sendSuccessJSONResponse(w http.ResponseWriter, payload *Response) {
@@ -32,16 +33,16 @@ func sendSuccessJSONResponse(w http.ResponseWriter, payload *Response) {
 func sendErrorResponse(w http.ResponseWriter, err *ErrorPayload, statusCode int) {
 	sendSuccessJSONResponse(w, &Response{
 		StatusCode: statusCode,
-		Error:		err,
-		Data:		nil,
+		Error:      err,
+		Data:       nil,
 	})
 }
 
-func sendSuccessResponse(w http.ResponseWriter, payload *map[string]interface{}){
+func sendSuccessResponse(w http.ResponseWriter, payload *map[string]interface{}) {
 	sendSuccessJSONResponse(w, &Response{
 		StatusCode: http.StatusOK,
-		Error:		nil,
-		Data:		payload,
+		Error:      nil,
+		Data:       payload,
 	})
 }
 
@@ -66,16 +67,21 @@ func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 
 	if content == "" {
 		sendErrorResponse(w, &ErrorPayload{
-			Message:	"Content can not be null",
+			Message: "Content can not be null",
 		}, 404)
 	}
-
+	id, err := uuid.NewRandom()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	blog := &Blog{
+		UUID:    id,
 		Title:   title,
 		Content: content,
 	}
 	print(blog)
-	err := h.service.create(blog)
+	err = h.service.create(blog)
 	if err != nil {
 		res := u.Message(false, "Internal Error")
 		u.Respond(w, res)
@@ -85,16 +91,16 @@ func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	u.Respond(w, res)
 }
 
-func (h Handler) GetAllBlogs(w http.ResponseWriter, r *http.Request){
+func (h Handler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
 	Cors(w)
 	blogs, err := h.service.getAllBlogs()
 	if err != nil {
 		sendErrorResponse(w, &ErrorPayload{
-			Message:	"Internal Error",
+			Message: "Internal Error",
 		}, 404)
 	}
 	sendSuccessResponse(w, &map[string]interface{}{
-		"blogs":	blogs,
+		"blogs": blogs,
 	})
 }
 

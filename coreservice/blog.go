@@ -1,14 +1,16 @@
 package coreservice
 
 import (
-	"github.com/jinzhu/gorm"
 	"fmt"
+	"github.com/google/uuid"
+	"github.com/jinzhu/gorm"
 )
 
 type Blog struct {
 	gorm.Model
-	Title   string
-	Content string
+	UUID    uuid.UUID `gorm:"unique_index; not null" sql:"type:uuid"`
+	Title   string    `gorm:"not null"`
+	Content string    `gorm:"not null"`
 }
 
 type Service struct {
@@ -20,27 +22,30 @@ func (s Service) create(blog *Blog) error {
 }
 
 type blogPayload struct {
-	Title	string		`json:"name"`
-	Content string		`json:"content"`
+	Title   string `json:"name"`
+	Content string `json:"content"`
+	UUID    string `json:"uid"`
 }
 
-func (s Service) getAllBlogs() ([]*blogPayload, error){
+func (s Service) getAllBlogs() ([]*blogPayload, error) {
 	result := []*blogPayload{}
-	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content`).Rows()
+	rows, err := s.db.Model(&Blog{}).Select(`title, content, uuid`).Rows()
 	if err != nil {
-		fmt.Println("error is ",err)
+		fmt.Println("error is ", err)
 		return nil, nil
 	}
 
-	for rows.Next(){
-		var title		string
-		var content 	string
-		if err := rows.Scan(&title, &content); err != nil {
-			fmt.Println("scan err: ",err)
+	for rows.Next() {
+		var title string
+		var content string
+		var uid string
+		if err := rows.Scan(&title, &content, &uid); err != nil {
+			fmt.Println("scan err: ", err)
 		}
 		result = append(result, &blogPayload{
-			Title:		title,
-			Content:	content,
+			Title:   title,
+			Content: content,
+			UUID:    uid,
 		})
 	}
 

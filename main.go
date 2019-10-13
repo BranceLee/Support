@@ -30,7 +30,7 @@ func main() {
 
 	router.HandleFunc("/api/blog", handler.CreateBlog).Methods("POST")
 	router.HandleFunc("/api/blog/all", handler.GetAllBlogs).Methods("GET")
-	
+
 	log.Println("> Server runs on  8000")
 	err = http.ListenAndServe(":8000", router)
 	if err != nil {
