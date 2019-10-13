@@ -93,7 +93,9 @@ func (h Handler) GetAllBlogs(w http.ResponseWriter, r *http.Request){
 			Message:	"Internal Error",
 		}, 404)
 	}
-	fmt.Println(blogs)
+	sendSuccessResponse(w, &map[string]interface{}{
+		"blogs":	blogs,
+	})
 }
 
 func NewHandler(db *gorm.DB) (*Handler, error) {

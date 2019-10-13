@@ -19,9 +19,14 @@ func (s Service) create(blog *Blog) error {
 	return s.db.Table("blogs").Create(blog).Error
 }
 
-func (s Service) getAllBlogs() ([]*Blog, error){
-	result := []*Blog{}
-	rows, err := s.db.Model(&Blog{}).Select("title, content").Rows()
+type blogPayload struct {
+	Title	string		`json:"name"`
+	Content string		`json:"content"`
+}
+
+func (s Service) getAllBlogs() ([]*blogPayload, error){
+	result := []*blogPayload{}
+	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content`).Rows()
 	if err != nil {
 		fmt.Println("error is ",err)
 		return nil, nil
@@ -33,7 +38,7 @@ func (s Service) getAllBlogs() ([]*Blog, error){
 		if err := rows.Scan(&title, &content); err != nil {
 			fmt.Println("scan err: ",err)
 		}
-		result = append(result, &Blog{
+		result = append(result, &blogPayload{
 			Title:		title,
 			Content:	content,
 		})
