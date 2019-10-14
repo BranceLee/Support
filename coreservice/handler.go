@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
-	u "github.com/support/utils"
 	"github.com/getsentry/sentry-go"
 	"net/http"
 	"os"
@@ -68,7 +67,7 @@ func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	if content == "" {
 		sendErrorResponse(w, &ErrorPayload{
 			Message: "Content can not be null",
-		}, 404)
+		}, http.StatusBadRequest)
 	}
 	id, err := uuid.NewRandom()
 	if err != nil {
@@ -81,14 +80,19 @@ func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 		Content: content,
 	}
 	print(blog)
-	err = h.service.create(blog)
-	if err != nil {
-		res := u.Message(false, "Internal Error")
-		u.Respond(w, res)
+	dbErr := h.service.create(blog)
+	if dbErr != nil {
+		statusCode := http.StatusInternalServerError
+		errorPayload := &ErrorPayload{
+			Message: "Internal Error",
+		}
+		sendErrorResponse(w, errorPayload, statusCode)
 		return
 	}
-	res := u.Message(true, "Success")
-	u.Respond(w, res)
+	sendSuccessResponse(w, &map[string]interface{}{
+		"message": "Save success",
+		"blog":		blog.UUID,
+	})
 }
 
 func (h Handler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
