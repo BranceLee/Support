@@ -1,0 +1,5 @@
+BEGIN;
+DROP TABLE devices;
+DROP TABLE sns;
+DROP TABLE blogs;
+COMMIT;
