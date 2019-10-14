@@ -56,7 +56,7 @@ func Cors(w http.ResponseWriter) {
 }
 
 type Handler struct {
-	service *Service
+	service *BlogService
 }
 
 func (h Handler) CreateBlog(w http.ResponseWriter, r *http.Request) {
@@ -108,9 +108,32 @@ func (h Handler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func dbMigrate(db *gorm.DB) error{
+	tx := db.Begin()
+
+	//Close transaction.
+	defer tx.Rollback()
+
+	userTableName := tx.NewScope(&Blog{}).GetModelStruct().TableName(tx)
+	print(userTableName)	
+	models := []interface{}{
+		Blog{}, Device{}, SN{},
+	}
+	for _, model := range models {
+		if err := db.AutoMigrate(model).Error; err != nil {
+			tx.Rollback()
+			return err
+		}
+	}
+	return tx.Commit().Error
+}
+
 func NewHandler(db *gorm.DB) (*Handler, error) {
-	db.AutoMigrate(Blog{})
-	service := &Service{
+	err := dbMigrate(db)
+	if err != nil {
+		return nil, err
+	}
+	service := &BlogService{
 		db: db,
 	}
 	return &Handler{

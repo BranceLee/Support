@@ -13,11 +13,11 @@ type Blog struct {
 	Content string    `gorm:"not null"`
 }
 
-type Service struct {
+type BlogService struct {
 	db *gorm.DB
 }
 
-func (s Service) create(blog *Blog) error {
+func (s BlogService) create(blog *Blog) error {
 	return s.db.Table("blogs").Create(blog).Error
 }
 
@@ -27,7 +27,7 @@ type blogPayload struct {
 	UUID    string `json:"uid"`
 }
 
-func (s Service) getAllBlogs() ([]*blogPayload, error) {
+func (s BlogService) getAllBlogs() ([]*blogPayload, error) {
 	result := []*blogPayload{}
 	rows, err := s.db.Model(&Blog{}).Select(`title, content, uuid`).Rows()
 	if err != nil {
