@@ -47,6 +47,6 @@ func DefaultPostgresConfig() PostgresConfig {
 	}
 }
 
-func GetSentryDSN() string{
+func GetSentryDSN() string {
 	return "https://61064a8e577b448ab6ed20f5aee63a1d@sentry.io/1777983"
 }

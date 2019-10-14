@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	"net/http"
 )
 
 type Blog struct {
@@ -50,4 +51,55 @@ func (s BlogService) getAllBlogs() ([]*blogPayload, error) {
 	}
 
 	return result, nil
+}
+
+type BlogHandler struct {
+	service *BlogService
+}
+
+func (h BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
+	content := r.PostFormValue("content")
+	title := r.PostFormValue("title")
+
+	if content == "" {
+		sendErrorResponse(w, &ErrorPayload{
+			Message: "Content can not be null",
+		}, http.StatusBadRequest)
+	}
+	id, err := uuid.NewRandom()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	blog := &Blog{
+		UUID:    id,
+		Title:   title,
+		Content: content,
+	}
+	print(blog)
+	dbErr := h.service.create(blog)
+	if dbErr != nil {
+		statusCode := http.StatusInternalServerError
+		errorPayload := &ErrorPayload{
+			Message: "Internal Error",
+		}
+		sendErrorResponse(w, errorPayload, statusCode)
+		return
+	}
+	sendSuccessResponse(w, &map[string]interface{}{
+		"message": "Save success",
+		"blog":    blog.UUID,
+	})
+}
+
+func (h BlogHandler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
+	blogs, err := h.service.getAllBlogs()
+	if err != nil {
+		sendErrorResponse(w, &ErrorPayload{
+			Message: "Internal Error",
+		}, 404)
+	}
+	sendSuccessResponse(w, &map[string]interface{}{
+		"blogs": blogs,
+	})
 }

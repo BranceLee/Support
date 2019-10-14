@@ -1,12 +1,12 @@
 package main
 
 import (
+	"github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/support/config"
 	"github.com/support/coreservice"
-	"github.com/getsentry/sentry-go"
 	"go.uber.org/zap"
 	"log"
 	"net/http"
@@ -14,25 +14,25 @@ import (
 )
 
 type server struct {
-	env				string
-	db				*gorm.DB
-	sentryDSN		string
-	logger			*zap.Logger
+	env       string
+	db        *gorm.DB
+	sentryDSN string
+	logger    *zap.Logger
 }
 
 func newServer(logger *zap.Logger) *server {
 	return &server{
-		logger:logger,
+		logger: logger,
 	}
 }
 
-func (s *server) connectToDB(){
+func (s *server) connectToDB() {
 	dbConfig := config.DefaultPostgresConfig()
 	db, err := gorm.Open(dbConfig.Dialect(), dbConfig.ConnectionInfo())
 	env, ok := os.LookupEnv("ENV")
-	if !ok  {
+	if !ok {
 		s.logger.Fatal("ENV Can not be null")
-	} 
+	}
 	db.LogMode(env == "DEV")
 	if err != nil {
 		sentry.CaptureException(err)
@@ -41,8 +41,8 @@ func (s *server) connectToDB(){
 	s.db = db
 }
 
-func (s *server) initSentry(){
-	// TODO: Get DNS from AWS ssmiface.SSMAPI, but in this project get in local. 
+func (s *server) initSentry() {
+	// TODO: Get DNS from AWS ssmiface.SSMAPI, but in this project get in local.
 	// sentryDSN, ok := os.LookupEnv("sentry")
 	//  if ok  {
 	// 	 s.logger.Fatal("Failed to initialize sentry")
@@ -51,7 +51,7 @@ func (s *server) initSentry(){
 	sentry.Init(sentry.ClientOptions{
 		Dsn: sentryDSN,
 	})
-	s.sentryDSN=sentryDSN
+	s.sentryDSN = sentryDSN
 }
 
 func main() {

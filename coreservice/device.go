@@ -6,14 +6,14 @@ import (
 
 type SN struct {
 	gorm.Model
-	Value		string			`gorm:"unique_index"`
+	Value string `gorm:"unique_index"`
 }
 
 type Device struct {
 	gorm.Model
-	SN			string
+	SN string
 }
 
 type DeviceService struct {
-	db			*gorm.DB
+	db *gorm.DB
 }
