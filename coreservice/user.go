@@ -4,11 +4,15 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
+	"errors"
 	"net/http"
 )
 
 const (
 	errEmailInvalid = "Invalid Email"
+	errEmailTaken = "Email has been Taken"
+	errInternal = "Internal error"
+	errGenericError         = "An error occurred. Please try again later."
 )
 
 type User struct {
@@ -26,12 +30,58 @@ type UserHandler struct {
 	service		*UserService
 }
 
+func runValidator(user *User, fns ...func(*User) error ) error {
+	for _, fn := range fns {
+		if err := fn(user); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (s *UserService) create(user *User) error {
-	s.requireUUID(user)
-	err := s.db.Create(user).Error
+	err := runValidator(user, s.requireUUID, s.requireUniqueEmail)
+	if err != nil {
+		return err
+	}
+	err = s.db.Create(user).Error
 	if err != nil {
 		sentry.CaptureException(err)
 		return err 
+	}
+	return nil
+}
+
+func (s *UserService) byEmail(email string) (*User, *modelError) {
+	identity := &User{}
+	err := s.db.Where(&User{Email:email}).First(identity).Error
+	if err !=nil {
+		if err == gorm.ErrRecordNotFound {
+			e := &modelError{
+				kind:	errTypeNotFound,
+				err:	err,	
+			}
+			return nil, e 
+		}
+		e := &modelError{
+			kind:	errTypeDBError,
+			err:	err,
+		} 
+		sentry.CaptureException(err)
+		return nil, e
+	}
+	return identity, nil
+}
+
+func (s *UserService) requireUniqueEmail(user *User) error {
+	var count int
+	err := s.db.Model(&User{}).Where("email = ?", user.Email).Count(&count).Error
+	if err !=nil {
+		sentry.CaptureException(err)
+		return errors.New(errGenericError)
+	}
+	if count != 0 {
+		return errors.New(errEmailTaken)
 	}
 	return nil
 }
@@ -55,13 +105,22 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, errorPayload, http.StatusBadRequest)
 	}
 	newUser := &User{Email:email,}
-	err := h.service.create(newUser)
-	if err != nil {
+	dbErr := h.service.create(newUser)
+	if dbErr != nil {
+		if dbErr.Error() == errEmailTaken {
+			errorPayload := &ErrorPayload{
+				Message:	errEmailTaken,
+			}
+			statusCode := http.StatusBadRequest
+			sendErrorResponse(w, errorPayload, statusCode)
+			return
+		}
 		errorPayload := &ErrorPayload{
-			Message:	"Internal error",
+			Message:	errInternal,
 		}
 		statusCode := http.StatusInternalServerError
 		sendErrorResponse(w, errorPayload, statusCode)
+		return
 	}
 	userPayload := &map[string]interface{}{
 		"email":		newUser.Email,

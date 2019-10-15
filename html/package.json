@@ -1,5 +1,5 @@
 {
-  "name": "Webpack",
+  "name": "support",
   "version": "1.0",
   "description": "webpack and react practice flow form :https://fakefish.github.io/react-webpack-cookbook/Getting-started.html",
   "main": "index.js",
