@@ -49,7 +49,7 @@ func dbMigrate(db *gorm.DB) error {
 	//Close transaction.
 	defer tx.Rollback()
 	models := []interface{}{
-		Blog{}, Device{}, SN{},
+		Blog{}, Device{}, SN{},	User{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model).Error; err != nil {
@@ -80,8 +80,10 @@ func dbMigrate(db *gorm.DB) error {
 }
 
 type Handler struct {
-	CreateBlog  http.HandlerFunc
-	GetAllBlogs http.HandlerFunc
+	CreateBlog  	http.HandlerFunc
+	GetAllBlogs 	http.HandlerFunc
+	CreateDevice 	http.HandlerFunc
+	CreateUser		http.HandlerFunc
 }
 
 func NewHandler(db *gorm.DB) (*Handler, error) {
@@ -91,17 +93,33 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 	}
 	m := middleware{}
 
-	service := &BlogService{
+	blogService := &BlogService{
 		db: db,
 	}
+	deviceService := &DeviceService{
+		db:	db,
+	}
 
+	userService := &UserService {
+		db : db,
+	}
+
+	userHandler := &UserHandler{
+		service:	userService,
+	}
+	
 	blogHandler := &BlogHandler{
-		service: service,
+		service:	 blogService,
+	}
+	deviceHandler := &DeviceHandler{
+		service: 	deviceService,
 	}
 
 	return &Handler{
-		CreateBlog:  m.apply(blogHandler.CreateBlog, m.cors),
-		GetAllBlogs: m.apply(blogHandler.GetAllBlogs, m.cors),
+		CreateBlog:  	m.apply(blogHandler.CreateBlog, m.cors),
+		GetAllBlogs: 	m.apply(blogHandler.GetAllBlogs, m.cors),
+		CreateDevice:	m.apply(deviceHandler.CreateDevice, m.cors),
+		CreateUser:		m.apply(userHandler.CreateUser, m.cors),
 	}, nil
 
 }
