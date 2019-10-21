@@ -77,7 +77,6 @@ func main() {
 	r.HandleFunc("/api/category/blog", handler.GetAllBlogs).Methods("GET")
 	r.HandleFunc("/api/category/blog/new", handler.CreateBlog).Methods("POST")
 
-	r.HandleFunc("/api/device/new", handler.CreateDevice).Methods("POST")
 	r.HandleFunc("/api/user/new", handler.CreateUser).Methods("POST")
 
 	serv.logger.Info("> Server runs on  8000")

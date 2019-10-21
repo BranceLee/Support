@@ -50,7 +50,7 @@ func dbMigrate(db *gorm.DB) error {
 	//Close transaction.
 	defer tx.Rollback()
 	models := []interface{}{
-		Blog{}, Device{}, SN{}, User{}, BlogCategory{},
+		Blog{}, User{}, BlogCategory{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model).Error; err != nil {
@@ -59,7 +59,6 @@ func dbMigrate(db *gorm.DB) error {
 		}
 	}
 
-	snTableName := tx.NewScope(&SN{}).GetModelStruct().TableName(tx)
 	blCategoryTableName := tx.NewScope(&BlogCategory{}).GetModelStruct().TableName(tx)
 
 	constrains := []struct {
@@ -67,7 +66,6 @@ func dbMigrate(db *gorm.DB) error {
 		fieldName string
 		refering  string
 	}{
-		{Device{}, "sn", snTableName + "(value)"},
 		{Blog{}, "category_id", blCategoryTableName + "(category_id)"},
 	}
 
@@ -85,7 +83,6 @@ func dbMigrate(db *gorm.DB) error {
 type Handler struct {
 	CreateBlog         http.HandlerFunc
 	GetAllBlogs        http.HandlerFunc
-	CreateDevice       http.HandlerFunc
 	CreateUser         http.HandlerFunc
 	CreateBlogCategory http.HandlerFunc
 }
@@ -105,10 +102,6 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 		db: db,
 	}
 
-	deviceService := &DeviceService{
-		db: db,
-	}
-
 	userService := &UserService{
 		db: db,
 	}
@@ -120,9 +113,6 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 	blogHandl := &BlogHandler{
 		service: blogService,
 	}
-	deviceHandl := &DeviceHandler{
-		service: deviceService,
-	}
 
 	blogCategoryHandl := &BlogCategoryHandler{
 		service: blogCategoryService,
@@ -131,7 +121,6 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 	return &Handler{
 		CreateBlog:         m.apply(blogHandl.CreateBlog, m.cors),
 		GetAllBlogs:        m.apply(blogHandl.GetAllBlogs, m.cors),
-		CreateDevice:       m.apply(deviceHandl.CreateDevice, m.cors),
 		CreateUser:         m.apply(userHandl.CreateUser, m.cors),
 		CreateBlogCategory: m.apply(blogCategoryHandl.CreateBlogCategory, m.cors),
 	}, nil
