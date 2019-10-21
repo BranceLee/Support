@@ -2,16 +2,18 @@ package coreservice
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
-	"net/http"
 )
 
 type Blog struct {
 	gorm.Model
-	UUID    uuid.UUID `gorm:"unique_index; not null" sql:"type:uuid"`
-	Title   string    `gorm:"not null"`
-	Content string    `gorm:"not null"`
+	UUID       uuid.UUID `gorm:"unique_index; not null" sql:"type:uuid"`
+	Title      string    `gorm:"not null"`
+	Content    string    `gorm:"not null"`
+	CategoryID string    `gorm:"not null"`
 }
 
 type BlogService struct {
@@ -23,14 +25,15 @@ func (s BlogService) create(blog *Blog) error {
 }
 
 type blogPayload struct {
-	Title   string `json:"name"`
-	Content string `json:"content"`
-	UUID    string `json:"uid"`
+	Title        string `json:"name"`
+	Content      string `json:"content"`
+	CategoryID   string `json:"category_id"`
+	CategoryName string `json:"category_name"`
 }
 
 func (s BlogService) getAllBlogs() ([]*blogPayload, error) {
 	result := []*blogPayload{}
-	rows, err := s.db.Model(&Blog{}).Select(`title, content, uuid`).Rows()
+	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content, blogs.category_id,blog_categories.name`).Joins("left join blog_categories on blog_categories.category_id = blogs.category_id").Order("blogs.updated_at DESC").Rows()
 	if err != nil {
 		fmt.Println("error is ", err)
 		return nil, nil
@@ -39,14 +42,16 @@ func (s BlogService) getAllBlogs() ([]*blogPayload, error) {
 	for rows.Next() {
 		var title string
 		var content string
-		var uid string
-		if err := rows.Scan(&title, &content, &uid); err != nil {
+		var categoryName string
+		var categoryID string
+		if err := rows.Scan(&title, &content, &categoryID, &categoryName); err != nil {
 			fmt.Println("scan err: ", err)
 		}
 		result = append(result, &blogPayload{
-			Title:   title,
-			Content: content,
-			UUID:    uid,
+			Title:        title,
+			Content:      content,
+			CategoryID:   categoryID,
+			CategoryName: categoryName,
 		})
 	}
 
@@ -60,23 +65,25 @@ type BlogHandler struct {
 func (h BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	content := r.PostFormValue("content")
 	title := r.PostFormValue("title")
-
-	if content == "" {
+	categoryID := r.PostFormValue("category_id")
+	if content == "" || title == "" || categoryID == "" {
 		sendErrorResponse(w, &ErrorPayload{
-			Message: "Content can not be null",
+			Message: "Bad Request",
 		}, http.StatusBadRequest)
+		return
 	}
+
 	id, err := uuid.NewRandom()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	blog := &Blog{
-		UUID:    id,
-		Title:   title,
-		Content: content,
+		UUID:       id,
+		Title:      title,
+		Content:    content,
+		CategoryID: categoryID,
 	}
-	print(blog)
 	dbErr := h.service.create(blog)
 	if dbErr != nil {
 		statusCode := http.StatusInternalServerError
@@ -87,8 +94,10 @@ func (h BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	sendSuccessResponse(w, &map[string]interface{}{
-		"message": "Save success",
-		"blog":    blog.UUID,
+		"blog": map[string]interface{}{
+			"uid":         blog.UUID,
+			"category_id": blog.CategoryID,
+		},
 	})
 }
 

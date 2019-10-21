@@ -1,6 +1,10 @@
 package main
 
 import (
+	"log"
+	"net/http"
+	"os"
+
 	"github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -8,9 +12,6 @@ import (
 	"github.com/support/config"
 	"github.com/support/coreservice"
 	"go.uber.org/zap"
-	"log"
-	"net/http"
-	"os"
 )
 
 type server struct {
@@ -70,14 +71,17 @@ func main() {
 		return
 	}
 
-	router := mux.NewRouter()
+	r := mux.NewRouter()
 
-	router.HandleFunc("/api/blog", handler.CreateBlog).Methods("POST")
-	router.HandleFunc("/api/blog/all", handler.GetAllBlogs).Methods("GET")
-	router.HandleFunc("/api/device/new", handler.CreateDevice).Methods("POST")
-	router.HandleFunc("/api/user/new", handler.CreateUser).Methods("POST")
+	r.HandleFunc("/api/category/new", handler.CreateBlogCategory).Methods("POST")
+	r.HandleFunc("/api/category/blog", handler.GetAllBlogs).Methods("GET")
+	r.HandleFunc("/api/category/blog/new", handler.CreateBlog).Methods("POST")
+
+	r.HandleFunc("/api/device/new", handler.CreateDevice).Methods("POST")
+	r.HandleFunc("/api/user/new", handler.CreateUser).Methods("POST")
+
 	serv.logger.Info("> Server runs on  8000")
-	err = http.ListenAndServe(":8000", router)
+	err = http.ListenAndServe(":8000", r)
 	if err != nil {
 		serv.logger.Info("HTTP server error", zap.Error(err))
 	}

@@ -4,11 +4,12 @@ type errType int
 
 // Define the err type to distinguish err
 const (
-	errTypeDBError errType = iota
-	errTypeNotFound
+	ErrTypeDBError errType = iota
+	ErrTypeNotFound
+	ErrTypeValidation
 )
 
-type modelError struct {
-	kind	errType
-	err		error
+type ModelError struct {
+	Kind errType
+	Err  error
 }
