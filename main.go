@@ -21,12 +21,6 @@ type server struct {
 	logger    *zap.Logger
 }
 
-func newServer(logger *zap.Logger) *server {
-	return &server{
-		logger: logger,
-	}
-}
-
 func (s *server) connectToDB() {
 	dbConfig := config.DefaultPostgresConfig()
 	db, err := gorm.Open(dbConfig.Dialect(), dbConfig.ConnectionInfo())
@@ -57,7 +51,14 @@ func (s *server) initSentry() {
 
 func main() {
 	exampaleLogger := zap.NewExample()
-	serv := newServer(exampaleLogger)
+	env, ok := os.LookupEnv("ENV")
+	if !ok {
+		exampaleLogger.Fatal("ENV is not found")
+	}
+	serv := &server{
+		logger: exampaleLogger,
+		env:    env,
+	}
 	serv.initSentry()
 	serv.connectToDB()
 
