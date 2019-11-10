@@ -4,6 +4,7 @@ import (
 	"fmt"
 )
 
+// PostgresConfig is psql Config params
 type PostgresConfig struct {
 	Host     string `json:"host"`
 	Port     string `json:"port"`
@@ -12,10 +13,12 @@ type PostgresConfig struct {
 	Password string `json:"password"`
 }
 
+// Dialect Database
 func (c PostgresConfig) Dialect() string {
 	return "postgres"
 }
 
+// ConnectionInfo is about the information of db host, port, user, dbname
 func (c PostgresConfig) ConnectionInfo() string {
 	if c.Password == "" {
 		return fmt.Sprintf(
@@ -37,6 +40,7 @@ func (c PostgresConfig) ConnectionInfo() string {
 	)
 }
 
+// DefaultPostgresConfig is Create psql config
 func DefaultPostgresConfig() PostgresConfig {
 	return PostgresConfig{
 		Host:     "localhost",
@@ -47,6 +51,7 @@ func DefaultPostgresConfig() PostgresConfig {
 	}
 }
 
+// GetSentryDSN is return the DNS info
 func GetSentryDSN() string {
 	return "https://61064a8e577b448ab6ed20f5aee63a1d@sentry.io/1777983"
 }
