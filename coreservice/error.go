@@ -9,6 +9,7 @@ const (
 	ErrTypeValidation
 )
 
+// ModelError wraps the err content and annotates what kind of the error it is
 type ModelError struct {
 	Kind errType
 	Err  error

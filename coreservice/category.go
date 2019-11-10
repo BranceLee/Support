@@ -10,21 +10,22 @@ import (
 	"github.com/support/token"
 )
 
+// BlogCategory contains all the category of the blog
 type BlogCategory struct {
 	gorm.Model
 	CategoryID string `gorm:"not null;unique_index"`
 	Name       string `gorm:"not null"`
 }
 
-type BlogCategoryService struct {
+type blogCategoryService struct {
 	db *gorm.DB
 }
 
-func (s *BlogCategoryService) create(blogCategory *BlogCategory) error {
+func (s *blogCategoryService) create(blogCategory *BlogCategory) error {
 	return s.db.Table("blog_categories").Create(blogCategory).Error
 }
 
-func (s *BlogCategoryService) getCategoryByName(ctName string) (*BlogCategory, *ModelError) {
+func (s *blogCategoryService) getCategoryByName(ctName string) (*BlogCategory, *ModelError) {
 	if ctName == "" {
 		return nil, &ModelError{
 			Kind: ErrTypeValidation,
@@ -57,7 +58,7 @@ type categoryPayload struct {
 	Name       string `json:"name"`
 }
 
-func (s *BlogCategoryService) getBlogCategory() ([]*categoryPayload, error) {
+func (s *blogCategoryService) getBlogCategory() ([]*categoryPayload, error) {
 	result := []*categoryPayload{}
 	rows, err := s.db.Model(&BlogCategory{}).Select(`name, category_id`).Rows()
 	if err != nil {
@@ -80,15 +81,15 @@ func (s *BlogCategoryService) getBlogCategory() ([]*categoryPayload, error) {
 	return result, nil
 }
 
-type BlogCategoryHandler struct {
-	service *BlogCategoryService
+type blogCategoryHandler struct {
+	service *blogCategoryService
 }
 
-func (bl *BlogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) {
+func (bl *blogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) {
 	categoryName := r.PostFormValue("category")
 
 	if categoryName == "" {
-		sendErrorResponse(w, &ErrorPayload{
+		sendErrorResponse(w, &errorPayload{
 			Message: "Category can not be null",
 		}, http.StatusBadRequest)
 		return
@@ -97,7 +98,7 @@ func (bl *BlogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 	_, err := bl.service.getCategoryByName(categoryName)
 
 	if err != nil && err.Kind == ErrTypeDBError {
-		sendErrorResponse(w, &ErrorPayload{
+		sendErrorResponse(w, &errorPayload{
 			Message: "Internal Error",
 		}, http.StatusBadRequest)
 		return
@@ -106,7 +107,7 @@ func (bl *BlogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 	if err != nil && err.Kind == ErrTypeNotFound {
 		id, uidErr := token.RandomToken(16)
 		if uidErr != nil {
-			sendErrorResponse(w, &ErrorPayload{
+			sendErrorResponse(w, &errorPayload{
 				Message: "Internal Error",
 			}, http.StatusInternalServerError)
 			return
@@ -120,7 +121,7 @@ func (bl *BlogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 		dbErr := bl.service.create(category)
 		if dbErr != nil {
 			statusCode := http.StatusInternalServerError
-			errorPayload := &ErrorPayload{
+			errorPayload := &errorPayload{
 				Message: "Internal Error",
 			}
 			sentry.CaptureException(dbErr)
@@ -135,7 +136,7 @@ func (bl *BlogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 		return
 	}
 
-	sendErrorResponse(w, &ErrorPayload{
+	sendErrorResponse(w, &errorPayload{
 		Message: "Category has been taken",
 	}, http.StatusBadRequest)
 }

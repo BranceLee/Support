@@ -8,17 +8,17 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-type ErrorPayload struct {
+type errorPayload struct {
 	Message string `json:"message"`
 }
 
-type Response struct {
+type response struct {
 	StatusCode int                     `json:"status_code"`
-	Error      *ErrorPayload           `json:"error"`
+	Error      *errorPayload           `json:"error"`
 	Data       *map[string]interface{} `json:"data"`
 }
 
-func sendSuccessJSONResponse(w http.ResponseWriter, payload *Response) {
+func sendSuccessJSONResponse(w http.ResponseWriter, payload *response) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	encoder := json.NewEncoder(w)
@@ -28,8 +28,8 @@ func sendSuccessJSONResponse(w http.ResponseWriter, payload *Response) {
 	}
 }
 
-func sendErrorResponse(w http.ResponseWriter, err *ErrorPayload, statusCode int) {
-	sendSuccessJSONResponse(w, &Response{
+func sendErrorResponse(w http.ResponseWriter, err *errorPayload, statusCode int) {
+	sendSuccessJSONResponse(w, &response{
 		StatusCode: statusCode,
 		Error:      err,
 		Data:       nil,
@@ -37,7 +37,7 @@ func sendErrorResponse(w http.ResponseWriter, err *ErrorPayload, statusCode int)
 }
 
 func sendSuccessResponse(w http.ResponseWriter, payload *map[string]interface{}) {
-	sendSuccessJSONResponse(w, &Response{
+	sendSuccessJSONResponse(w, &response{
 		StatusCode: http.StatusOK,
 		Error:      nil,
 		Data:       payload,
@@ -80,13 +80,16 @@ func dbMigrate(db *gorm.DB) error {
 	return tx.Commit().Error
 }
 
+// Handler contains all the http handlers for request endpoints
 type Handler struct {
-	CreateBlog         http.HandlerFunc
-	GetAllBlogs        http.HandlerFunc
-	CreateUser         http.HandlerFunc
-	CreateBlogCategory http.HandlerFunc
+	CreateBlog     http.HandlerFunc
+	GetAllBlogs    http.HandlerFunc
+	CreateUser     http.HandlerFunc
+	CreateCategory http.HandlerFunc
+	GetCategory    http.HandlerFunc
 }
 
+// NewHandler returns an instance of the Handlers
 func NewHandler(db *gorm.DB) (*Handler, error) {
 	err := dbMigrate(db)
 	if err != nil {
@@ -94,35 +97,35 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 	}
 	m := middleware{}
 
-	blogService := &BlogService{
+	blogService := &blogService{
 		db: db,
 	}
 
-	blogCategoryService := &BlogCategoryService{
+	blogCategoryService := &blogCategoryService{
 		db: db,
 	}
 
-	userService := &UserService{
+	userService := &userService{
 		db: db,
 	}
 
-	userHandl := &UserHandler{
+	userHandl := &userHandler{
 		service: userService,
 	}
 
-	blogHandl := &BlogHandler{
+	blogHandl := &blogHandler{
 		service: blogService,
 	}
 
-	blogCategoryHandl := &BlogCategoryHandler{
+	blogCategoryHandl := &blogCategoryHandler{
 		service: blogCategoryService,
 	}
 
 	return &Handler{
-		CreateBlog:         m.apply(blogHandl.CreateBlog, m.cors),
-		GetAllBlogs:        m.apply(blogHandl.GetAllBlogs, m.cors),
-		CreateUser:         m.apply(userHandl.CreateUser, m.cors),
-		CreateBlogCategory: m.apply(blogCategoryHandl.CreateBlogCategory, m.cors),
+		CreateBlog:     m.apply(blogHandl.CreateBlog, m.cors),
+		GetAllBlogs:    m.apply(blogHandl.GetAllBlogs, m.cors),
+		CreateUser:     m.apply(userHandl.CreateUser, m.cors),
+		CreateCategory: m.apply(blogCategoryHandl.CreateBlogCategory, m.cors),
 	}, nil
 
 }

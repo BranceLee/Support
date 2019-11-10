@@ -74,7 +74,8 @@ func main() {
 
 	r := mux.NewRouter()
 
-	r.HandleFunc("/api/category/new", handler.CreateBlogCategory).Methods("POST")
+	r.HandleFunc("/api/category/new", handler.CreateCategory).Methods("POST")
+	r.HandleFunc("/api/category", handler.GetCategory).Methods("GET")
 	r.HandleFunc("/api/category/blog", handler.GetAllBlogs).Methods("GET")
 	r.HandleFunc("/api/category/blog/new", handler.CreateBlog).Methods("POST")
 

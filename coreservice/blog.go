@@ -8,6 +8,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// Blog contains all the blog information
 type Blog struct {
 	gorm.Model
 	UUID       uuid.UUID `gorm:"unique_index; not null" sql:"type:uuid"`
@@ -16,11 +17,11 @@ type Blog struct {
 	CategoryID string    `gorm:"not null"`
 }
 
-type BlogService struct {
+type blogService struct {
 	db *gorm.DB
 }
 
-func (s BlogService) create(blog *Blog) error {
+func (s *blogService) create(blog *Blog) error {
 	return s.db.Table("blogs").Create(blog).Error
 }
 
@@ -31,7 +32,7 @@ type blogPayload struct {
 	CategoryName string `json:"category_name"`
 }
 
-func (s BlogService) getAllBlogs() ([]*blogPayload, error) {
+func (s *blogService) getAllBlogs() ([]*blogPayload, error) {
 	result := []*blogPayload{}
 	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content, blogs.category_id,blog_categories.name`).Joins("left join blog_categories on blog_categories.category_id = blogs.category_id").Order("blogs.updated_at DESC").Rows()
 	if err != nil {
@@ -58,16 +59,16 @@ func (s BlogService) getAllBlogs() ([]*blogPayload, error) {
 	return result, nil
 }
 
-type BlogHandler struct {
-	service *BlogService
+type blogHandler struct {
+	service *blogService
 }
 
-func (h BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
+func (h blogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	content := r.PostFormValue("content")
 	title := r.PostFormValue("title")
 	categoryID := r.PostFormValue("category_id")
 	if content == "" || title == "" || categoryID == "" {
-		sendErrorResponse(w, &ErrorPayload{
+		sendErrorResponse(w, &errorPayload{
 			Message: "Bad Request",
 		}, http.StatusBadRequest)
 		return
@@ -87,7 +88,7 @@ func (h BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	dbErr := h.service.create(blog)
 	if dbErr != nil {
 		statusCode := http.StatusInternalServerError
-		errorPayload := &ErrorPayload{
+		errorPayload := &errorPayload{
 			Message: "Internal Error",
 		}
 		sendErrorResponse(w, errorPayload, statusCode)
@@ -101,10 +102,10 @@ func (h BlogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h BlogHandler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
+func (h *blogHandler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
 	blogs, err := h.service.getAllBlogs()
 	if err != nil {
-		sendErrorResponse(w, &ErrorPayload{
+		sendErrorResponse(w, &errorPayload{
 			Message: "Internal Error",
 		}, 404)
 	}

@@ -16,19 +16,20 @@ const (
 	errGenericError = "An error occurred. Please try again later."
 )
 
+// User contains the information of the user
 type User struct {
 	gorm.Model
 	UUID  uuid.UUID `gorm:"unique_index; not null" sql:"uuid"`
 	Email string    `gorm:"not null; unique_index"`
 }
 
-type UserService struct {
+type userService struct {
 	db             *gorm.DB
 	passwordPepper string
 }
 
-type UserHandler struct {
-	service *UserService
+type userHandler struct {
+	service *userService
 }
 
 func runValidator(user *User, fns ...func(*User) error) error {
@@ -40,7 +41,7 @@ func runValidator(user *User, fns ...func(*User) error) error {
 	return nil
 }
 
-func (s *UserService) create(user *User) error {
+func (s *userService) create(user *User) error {
 	err := runValidator(user, s.requireUUID, s.requireUniqueEmail)
 	if err != nil {
 		return err
@@ -53,7 +54,7 @@ func (s *UserService) create(user *User) error {
 	return nil
 }
 
-func (s *UserService) byEmail(email string) (*User, *ModelError) {
+func (s *userService) byEmail(email string) (*User, *ModelError) {
 	identity := &User{}
 	err := s.db.Where(&User{Email: email}).First(identity).Error
 	if err != nil {
@@ -74,7 +75,7 @@ func (s *UserService) byEmail(email string) (*User, *ModelError) {
 	return identity, nil
 }
 
-func (s *UserService) requireUniqueEmail(user *User) error {
+func (s *userService) requireUniqueEmail(user *User) error {
 	var count int
 	err := s.db.Model(&User{}).Where("email = ?", user.Email).Count(&count).Error
 	if err != nil {
@@ -87,7 +88,7 @@ func (s *UserService) requireUniqueEmail(user *User) error {
 	return nil
 }
 
-func (s *UserService) requireUUID(user *User) error {
+func (s *userService) requireUUID(user *User) error {
 	uid, err := uuid.NewRandom()
 	if err != nil {
 		return err
@@ -96,11 +97,11 @@ func (s *UserService) requireUUID(user *User) error {
 	return nil
 }
 
-func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	email := r.PostFormValue("email")
 	if email == "" {
-		errorPayload := &ErrorPayload{
+		errorPayload := &errorPayload{
 			Message: errEmailInvalid,
 		}
 		sendErrorResponse(w, errorPayload, http.StatusBadRequest)
@@ -109,14 +110,14 @@ func (h *UserHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	dbErr := h.service.create(newUser)
 	if dbErr != nil {
 		if dbErr.Error() == errEmailTaken {
-			errorPayload := &ErrorPayload{
+			errorPayload := &errorPayload{
 				Message: errEmailTaken,
 			}
 			statusCode := http.StatusBadRequest
 			sendErrorResponse(w, errorPayload, statusCode)
 			return
 		}
-		errorPayload := &ErrorPayload{
+		errorPayload := &errorPayload{
 			Message: errInternal,
 		}
 		statusCode := http.StatusInternalServerError
