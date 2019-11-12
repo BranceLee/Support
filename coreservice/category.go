@@ -2,7 +2,6 @@ package coreservice
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/getsentry/sentry-go"
@@ -10,8 +9,8 @@ import (
 	"github.com/support/token"
 )
 
-// BlogCategory contains all the category of the blog
-type BlogCategory struct {
+// Category contains all the category of the blog
+type Category struct {
 	gorm.Model
 	CategoryID string `gorm:"not null;unique_index"`
 	Name       string `gorm:"not null"`
@@ -21,20 +20,20 @@ type blogCategoryService struct {
 	db *gorm.DB
 }
 
-func (s *blogCategoryService) create(blogCategory *BlogCategory) error {
-	return s.db.Table("blog_categories").Create(blogCategory).Error
+func (s *blogCategoryService) create(blogCategory *Category) error {
+	return s.db.Create(blogCategory).Error
 }
 
-func (s *blogCategoryService) getCategoryByName(ctName string) (*BlogCategory, *ModelError) {
-	if ctName == "" {
+func (s *blogCategoryService) getCategoryByName(name string) (*Category, *ModelError) {
+	if name == "" {
 		return nil, &ModelError{
 			Kind: ErrTypeValidation,
 			Err:  errors.New("Empty uuid"),
 		}
 	}
 
-	category := &BlogCategory{
-		Name: ctName,
+	category := &Category{
+		Name: name,
 	}
 	err := s.db.Where("name = ?", category.Name).Take(category).Error
 	if err != nil {
@@ -54,38 +53,39 @@ func (s *blogCategoryService) getCategoryByName(ctName string) (*BlogCategory, *
 }
 
 type categoryPayload struct {
-	CategoryID string `json:"uid"`
 	Name       string `json:"name"`
+	CategoryID string `json:"category_id"`
 }
 
-func (s *blogCategoryService) getBlogCategory() ([]*categoryPayload, error) {
+func (s *blogCategoryService) getCategory() ([]*categoryPayload, error) {
 	result := []*categoryPayload{}
-	rows, err := s.db.Model(&BlogCategory{}).Select(`name, category_id`).Rows()
+	rows, err := s.db.Model(&Category{}).Select(`name, category_id`).Rows()
 	if err != nil {
-		fmt.Println("error is ", err)
-		return nil, nil
+		sentry.CaptureException(err)
+		return nil, err
 	}
 
 	for rows.Next() {
 		var name string
 		var uid string
 		if err := rows.Scan(&name, &uid); err != nil {
-			fmt.Println("scan err: ", err)
+			sentry.CaptureException(err)
+			return nil, err
 		}
 		result = append(result, &categoryPayload{
-			CategoryID: uid,
 			Name:       name,
+			CategoryID: uid,
 		})
 	}
 
 	return result, nil
 }
 
-type blogCategoryHandler struct {
+type categoryHandler struct {
 	service *blogCategoryService
 }
 
-func (bl *blogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http.Request) {
+func (ch *categoryHandler) createCategory(w http.ResponseWriter, r *http.Request) {
 	categoryName := r.PostFormValue("category")
 
 	if categoryName == "" {
@@ -95,7 +95,7 @@ func (bl *blogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 		return
 	}
 
-	_, err := bl.service.getCategoryByName(categoryName)
+	_, err := ch.service.getCategoryByName(categoryName)
 
 	if err != nil && err.Kind == ErrTypeDBError {
 		sendErrorResponse(w, &errorPayload{
@@ -113,25 +113,22 @@ func (bl *blogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 			return
 		}
 
-		category := &BlogCategory{
+		category := &Category{
 			CategoryID: *id,
 			Name:       categoryName,
 		}
-
-		dbErr := bl.service.create(category)
+		dbErr := ch.service.create(category)
 		if dbErr != nil {
-			statusCode := http.StatusInternalServerError
-			errorPayload := &errorPayload{
-				Message: "Internal Error",
-			}
 			sentry.CaptureException(dbErr)
-			sendErrorResponse(w, errorPayload, statusCode)
+			sendErrorResponse(w, &errorPayload{
+				Message: "Internal Error",
+			}, http.StatusInternalServerError)
 			return
 		}
+
 		sendSuccessResponse(w, &map[string]interface{}{
-			"message": "Save success",
-			"uid":     category.CategoryID,
-			"name":    category.Name,
+			"uid":  category.CategoryID,
+			"name": category.Name,
 		})
 		return
 	}
@@ -139,4 +136,15 @@ func (bl *blogCategoryHandler) CreateBlogCategory(w http.ResponseWriter, r *http
 	sendErrorResponse(w, &errorPayload{
 		Message: "Category has been taken",
 	}, http.StatusBadRequest)
+}
+
+func (ch *categoryHandler) getCategory(w http.ResponseWriter, r *http.Request) {
+	category, err := ch.service.getCategory()
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	sendSuccessResponse(w, &map[string]interface{}{
+		"category": category,
+	})
 }

@@ -97,7 +97,7 @@ func (s *userService) requireUUID(user *User) error {
 	return nil
 }
 
-func (h *userHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
+func (h *userHandler) createUser(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	email := r.PostFormValue("email")
 	if email == "" {

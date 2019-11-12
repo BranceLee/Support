@@ -50,7 +50,7 @@ func dbMigrate(db *gorm.DB) error {
 	//Close transaction.
 	defer tx.Rollback()
 	models := []interface{}{
-		Blog{}, User{}, BlogCategory{},
+		Blog{}, User{}, Category{},
 	}
 	for _, model := range models {
 		if err := db.AutoMigrate(model).Error; err != nil {
@@ -59,14 +59,13 @@ func dbMigrate(db *gorm.DB) error {
 		}
 	}
 
-	blCategoryTableName := tx.NewScope(&BlogCategory{}).GetModelStruct().TableName(tx)
-
+	categoryTableName := tx.NewScope(&Category{}).GetModelStruct().TableName(tx)
 	constrains := []struct {
 		model     interface{}
 		fieldName string
 		refering  string
 	}{
-		{Blog{}, "category_id", blCategoryTableName + "(category_id)"},
+		{Blog{}, "category_id", categoryTableName + "(category_id)"},
 	}
 
 	// Add Foreignkey
@@ -117,15 +116,16 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 		service: blogService,
 	}
 
-	blogCategoryHandl := &blogCategoryHandler{
+	categoryHandl := &categoryHandler{
 		service: blogCategoryService,
 	}
 
 	return &Handler{
-		CreateBlog:     m.apply(blogHandl.CreateBlog, m.cors),
-		GetAllBlogs:    m.apply(blogHandl.GetAllBlogs, m.cors),
-		CreateUser:     m.apply(userHandl.CreateUser, m.cors),
-		CreateCategory: m.apply(blogCategoryHandl.CreateBlogCategory, m.cors),
+		CreateBlog:     m.apply(blogHandl.createBlog, m.cors),
+		GetAllBlogs:    m.apply(blogHandl.getAllBlogs, m.cors),
+		CreateUser:     m.apply(userHandl.createUser, m.cors),
+		CreateCategory: m.apply(categoryHandl.createCategory, m.cors),
+		GetCategory:    m.apply(categoryHandl.getCategory, m.cors),
 	}, nil
 
 }

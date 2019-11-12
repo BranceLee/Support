@@ -24,11 +24,7 @@ type server struct {
 func (s *server) connectToDB() {
 	dbConfig := config.DefaultPostgresConfig()
 	db, err := gorm.Open(dbConfig.Dialect(), dbConfig.ConnectionInfo())
-	env, ok := os.LookupEnv("ENV")
-	if !ok {
-		s.logger.Fatal("ENV Can not be null")
-	}
-	db.LogMode(env == "DEV")
+	db.LogMode(s.env == "TEST")
 	if err != nil {
 		sentry.CaptureException(err)
 		s.logger.Fatal("Environment variable ENV is not found")
@@ -38,10 +34,6 @@ func (s *server) connectToDB() {
 
 func (s *server) initSentry() {
 	// TODO: Get DNS from AWS ssmiface.SSMAPI, but in this project get in local.
-	// sentryDSN, ok := os.LookupEnv("sentry")
-	//  if ok  {
-	// 	 s.logger.Fatal("Failed to initialize sentry")
-	//  }
 	sentryDSN := config.GetSentryDSN()
 	sentry.Init(sentry.ClientOptions{
 		Dsn: sentryDSN,

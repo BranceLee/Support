@@ -1,9 +1,9 @@
 package coreservice
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 )
@@ -34,9 +34,9 @@ type blogPayload struct {
 
 func (s *blogService) getAllBlogs() ([]*blogPayload, error) {
 	result := []*blogPayload{}
-	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content, blogs.category_id,blog_categories.name`).Joins("left join blog_categories on blog_categories.category_id = blogs.category_id").Order("blogs.updated_at DESC").Rows()
+	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content, blogs.category_id,blog_categories.name`).Joins("left join categories on categories.category_id = blogs.category_id").Order("blogs.updated_at DESC").Rows()
 	if err != nil {
-		fmt.Println("error is ", err)
+		sentry.CaptureException(err)
 		return nil, nil
 	}
 
@@ -46,7 +46,8 @@ func (s *blogService) getAllBlogs() ([]*blogPayload, error) {
 		var categoryName string
 		var categoryID string
 		if err := rows.Scan(&title, &content, &categoryID, &categoryName); err != nil {
-			fmt.Println("scan err: ", err)
+			sentry.CaptureException(err)
+			return nil, err
 		}
 		result = append(result, &blogPayload{
 			Title:        title,
@@ -63,7 +64,7 @@ type blogHandler struct {
 	service *blogService
 }
 
-func (h blogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
+func (h blogHandler) createBlog(w http.ResponseWriter, r *http.Request) {
 	content := r.PostFormValue("content")
 	title := r.PostFormValue("title")
 	categoryID := r.PostFormValue("category_id")
@@ -102,7 +103,7 @@ func (h blogHandler) CreateBlog(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func (h *blogHandler) GetAllBlogs(w http.ResponseWriter, r *http.Request) {
+func (h *blogHandler) getAllBlogs(w http.ResponseWriter, r *http.Request) {
 	blogs, err := h.service.getAllBlogs()
 	if err != nil {
 		sendErrorResponse(w, &errorPayload{
