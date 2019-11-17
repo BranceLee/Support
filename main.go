@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"log"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
@@ -73,9 +77,34 @@ func main() {
 
 	r.HandleFunc("/api/user/new", handler.CreateUser).Methods("POST")
 
+	server := http.Server{
+		Addr:         ":8080",
+		Handler:      r,
+		ReadTimeout:  time.Second * 60,
+		WriteTimeout: time.Second * 60,
+		IdleTimeout:  time.Second * 60,
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+
+	idleConnsClosed := make(chan struct{})
+	go func() {
+		sigint := make(chan os.Signal, 1)
+		signal.Notify(sigint, os.Interrupt)
+		signal.Notify(sigint, syscall.SIGTERM)
+		<-sigint
+
+		if err := server.Shutdown(ctx); err != nil {
+			serv.logger.Info("HTTP server shutdown", zap.Error(err))
+		}
+		close(idleConnsClosed)
+	}()
+
 	serv.logger.Info("> Server runs on  8000")
-	err = http.ListenAndServe(":8000", r)
+	err = server.ListenAndServe()
 	if err != nil {
 		serv.logger.Info("HTTP server error", zap.Error(err))
 	}
+	<-idleConnsClosed
 }
