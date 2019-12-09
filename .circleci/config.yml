@@ -25,3 +25,11 @@ jobs:
       - run: 
           name: Go Testing
           command: go test ./...
+workflows:
+  version: 2.1
+  build-and-deploy-dev:
+    jobs:
+      - test:
+          filters:
+            branches:
+              only: master
