@@ -9,18 +9,19 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/BranceLee/Support/config"
+	"github.com/BranceLee/Support/coreservice"
 	"github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/BranceLee/Support/config"
-	"github.com/BranceLee/Support/coreservice"
 	"go.uber.org/zap"
 )
 
 type server struct {
 	env       string
 	db        *gorm.DB
+	conf      *config.Config
 	sentryDSN string
 	logger    *zap.Logger
 }
@@ -50,6 +51,18 @@ func (s *server) initSentry() {
 	s.logger.Info("LoadSentry success", zap.String("event", "initSentry_success"))
 }
 
+func (s *server) initConf() {
+	switch s.env {
+	case config.TEST:
+		conf, _ := config.LoadTestConfig()
+		s.conf = conf
+	case config.DEV:
+		//	TODO: LoadProdconfig
+	case config.PROD:
+		//	TODO: LoadProdConfig
+	}
+}
+
 func main() {
 	exampaleLogger := zap.NewExample()
 	env, ok := os.LookupEnv("ENV")
@@ -60,6 +73,7 @@ func main() {
 		logger: exampaleLogger,
 		env:    env,
 	}
+	serv.initConf()
 	serv.initSentry()
 	serv.connectToDB()
 

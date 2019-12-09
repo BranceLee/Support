@@ -4,6 +4,20 @@ import (
 	"fmt"
 )
 
+const (
+	_devDB  = "support_dev"
+	_testDB = "support_test"
+
+	// DEV is the development environment
+	DEV = "DEV"
+
+	// TEST is the testing environment
+	TEST = "TEST"
+
+	// PROD is the production environment
+	PROD = "PROD"
+)
+
 // PostgresConfig is psql Config params
 type PostgresConfig struct {
 	Host     string `json:"host"`
@@ -54,4 +68,23 @@ func DefaultPostgresConfig() PostgresConfig {
 // GetSentryDSN is return the DNS info
 func GetSentryDSN() string {
 	return "https://61064a8e577b448ab6ed20f5aee63a1d@sentry.io/1777983"
+}
+
+// Config represent application level configuration.
+type Config struct {
+	Database PostgresConfig `json:"database"`
+}
+
+// DefaultConfig returns a default config for testing.
+func DefaultConfig() *Config {
+	return &Config{
+		Database: DefaultPostgresConfig(),
+	}
+}
+
+// LoadTestConfig returns a config used for local dev enviroment
+func LoadTestConfig() (*Config, error) {
+	conf := DefaultConfig()
+	conf.Database.DBName = _devDB
+	return conf, nil
 }
