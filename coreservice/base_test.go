@@ -7,7 +7,7 @@ import (
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/support/config"
+	"github.com/BranceLee/Support/config"
 )
 
 var db *gorm.DB
