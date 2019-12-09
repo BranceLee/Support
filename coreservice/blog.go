@@ -75,13 +75,13 @@ func (h blogHandler) createBlog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := uuid.NewRandom()
+	uid, err := uuid.NewRandom()
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	blog := &Blog{
-		UUID:       id,
+		UUID:       uid,
 		Title:      title,
 		Content:    content,
 		CategoryID: categoryID,
