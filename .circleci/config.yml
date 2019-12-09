@@ -8,6 +8,7 @@ jobs:
           POSTGRES_USER: lee
           POSTGRES_DB: support_dev
           PASSWORD: ""
+      - image: circleci/redis:5.0.4-alpine
 
     environment:
       ENV: TEST
@@ -22,6 +23,9 @@ jobs:
       - run: 
           name: wait for postgresql
           command: dockerize -wait tcp://localhost:5432 -timeout 1m
+      - run:
+          name: wait for redis
+          command: dockerize -wait tcp://localhost:6379 -timeout 1m
       - run: 
           name: Go Testing
           command: go test ./...
