@@ -13,8 +13,8 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
-	"github.com/support/config"
-	"github.com/support/coreservice"
+	"github.com/BranceLee/Support/config"
+	"github.com/BranceLee/Support/coreservice"
 	"go.uber.org/zap"
 )
 

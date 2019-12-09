@@ -6,7 +6,7 @@ import (
 
 	"github.com/getsentry/sentry-go"
 	"github.com/jinzhu/gorm"
-	"github.com/support/token"
+	"github.com/BranceLee/Support/token"
 )
 
 // Category contains all the category of the blog
