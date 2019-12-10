@@ -61,7 +61,7 @@ func DefaultPostgresConfig() PostgresConfig {
 		Port:     "5432",
 		User:     "lee",
 		Password: "",
-		DBName:   "support_dev",
+		DBName:   _testDB,
 	}
 }
 
