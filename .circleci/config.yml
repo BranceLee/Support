@@ -6,7 +6,7 @@ jobs:
       - image: circleci/postgres:11.1-alpine
         environment:
           POSTGRES_USER: lee
-          POSTGRES_DB: support_dev
+          POSTGRES_DB: support_test
           PASSWORD: ""
       - image: circleci/redis:5.0.4-alpine
 
