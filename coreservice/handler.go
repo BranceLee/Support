@@ -46,9 +46,16 @@ func sendSuccessResponse(w http.ResponseWriter, payload *map[string]interface{})
 
 func dbMigrate(db *gorm.DB) error {
 	tx := db.Begin()
+	defer func() {
+		if r := recover(); r != nil {
+			tx.Rollback()
+		}
+	}()
 
-	//Close transaction.
-	defer tx.Rollback()
+	if err := tx.Error; err != nil {
+		return err
+	}
+
 	models := []interface{}{
 		Blog{}, User{}, Category{},
 	}
@@ -63,14 +70,14 @@ func dbMigrate(db *gorm.DB) error {
 	constrains := []struct {
 		model     interface{}
 		fieldName string
-		refering  string
+		referring string
 	}{
 		{Blog{}, "category_id", categoryTableName + "(category_id)"},
 	}
 
 	// Add Foreignkey
 	for _, c := range constrains {
-		if err := tx.Model(c.model).AddForeignKey(c.fieldName, c.refering, "RESTRICT", "RESTRICT").Error; err != nil {
+		if err := tx.Model(c.model).AddForeignKey(c.fieldName, c.referring, "RESTRICT", "RESTRICT").Error; err != nil {
 			tx.Rollback()
 			return err
 		}
