@@ -2,6 +2,8 @@ package coreservice
 
 import (
 	"net/http"
+
+	"github.com/getsentry/sentry-go"
 )
 
 type middleware struct {
@@ -14,6 +16,20 @@ func (m middleware) apply(h http.HandlerFunc, middlewares ...func(http.HandlerFu
 		h = fn(h)
 	}
 	return h
+}
+
+func (m *middleware) configureSentry(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		sentry.ConfigureScope(func(scope *sentry.Scope) {
+			scope.SetTags(map[string]string{
+				"hostname":       r.Host,
+				"request_host":   r.URL.Hostname(),
+				"request_path":   r.URL.Path,
+				"remote_address": r.RemoteAddr,
+			})
+		})
+		h(w, r)
+	}
 }
 
 func (m middleware) cors(h http.HandlerFunc) http.HandlerFunc {

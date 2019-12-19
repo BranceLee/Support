@@ -36,8 +36,10 @@ func (s *blogService) getAllBlogs() ([]*blogPayload, error) {
 	result := []*blogPayload{}
 	rows, err := s.db.Model(&Blog{}).Select(`blogs.title, blogs.content, blogs.category_id,blog_categories.name`).Joins("left join categories on categories.category_id = blogs.category_id").Order("blogs.updated_at DESC").Rows()
 	if err != nil {
-		sentry.CaptureException(err)
-		return nil, nil
+		if err != gorm.ErrRecordNotFound {
+			sentry.CaptureException(err)
+			return nil, err
+		}
 	}
 
 	for rows.Next() {

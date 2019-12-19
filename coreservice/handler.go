@@ -129,7 +129,7 @@ func NewHandler(db *gorm.DB) (*Handler, error) {
 
 	return &Handler{
 		CreateBlog:     m.apply(blogHandl.createBlog, m.cors),
-		GetAllBlogs:    m.apply(blogHandl.getAllBlogs, m.cors),
+		GetAllBlogs:    m.apply(blogHandl.getAllBlogs, m.configureSentry, m.cors),
 		CreateUser:     m.apply(userHandl.createUser, m.cors),
 		CreateCategory: m.apply(categoryHandl.createCategory, m.cors),
 		GetCategory:    m.apply(categoryHandl.getCategory, m.cors),

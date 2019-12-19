@@ -60,7 +60,7 @@ func DefaultPostgresConfig() PostgresConfig {
 		Host:     "localhost",
 		Port:     "5432",
 		User:     "lee",
-		Password: "",
+		Password: "lanxin",
 		DBName:   _testDB,
 	}
 }

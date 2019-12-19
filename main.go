@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/BranceLee/Support/config"
 	"github.com/BranceLee/Support/coreservice"
-	"github.com/avct/uasurfer"
 	"github.com/getsentry/sentry-go"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -98,20 +96,8 @@ func main() {
 	r.HandleFunc("/api/category/blog/new", handler.CreateBlog).Methods("POST")
 	r.HandleFunc("/api/user/new", handler.CreateUser).Methods("POST")
 
-	r.HandleFunc("/download_app", func(w http.ResponseWriter, r *http.Request) {
-		ua := uasurfer.Parse(r.Header.Get("User-Agent"))
-		platform := ua.OS.Platform
-		fmt.Println(r.Header.Get("User-Agent"))
-		fmt.Println(platform)
-		if platform == uasurfer.PlatformiPhone || platform == uasurfer.PlatformiPad || platform == uasurfer.PlatformiPod || platform == uasurfer.PlatformMac {
-			http.Redirect(w, r, "https://apps.apple.com/us/app/wuuk/id1484235865", http.StatusFound)
-			return
-		}
-		http.Redirect(w, r, "https://play.google.com/store/apps/details?id=com.wuuklabs.android.store", http.StatusFound)
-	}).Methods("GET")
-
 	server := http.Server{
-		Addr:         ":8080",
+		Addr:         ":8000",
 		Handler:      r,
 		ReadTimeout:  time.Second * 60,
 		WriteTimeout: time.Second * 60,
